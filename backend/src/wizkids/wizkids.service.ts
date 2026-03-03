@@ -125,4 +125,14 @@ export class WizkidsService {
       throw new BadRequestException('Unable to update wizkid');
     }
   }
+
+  async deleteWizkid(id: string) {
+    const deleted = await this.wizkidModel.findByIdAndDelete(id).lean().exec();
+
+    if (!deleted) {
+      throw new NotFoundException('Wizkid not found');
+    }
+
+    return deleted;
+  }
 }

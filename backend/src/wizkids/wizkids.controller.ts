@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -49,5 +50,11 @@ export class WizkidsController {
     // we return the private view here because only authenticated users can update,
     // and they should see all the details of the updated wizkid
     return toPrivateView(updatedWizkid);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id')
+  async remove(@Param('id', ParseObjectIdPipe) id: string) {
+    await this.wizkidsService.deleteWizkid(id);
   }
 }
