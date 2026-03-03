@@ -59,8 +59,9 @@ export class WizkidsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(WizkidRole.BOSS)
   @Delete(':id')
-  async remove(@Param('id', ParseObjectIdPipe) id: string) {
-    await this.wizkidsService.deleteWizkid(id);
+  async remove(@Param('id', ParseObjectIdPipe) id: string, @Req() req: any) {
+    const actorId = req.user.userId;
+    await this.wizkidsService.deleteWizkid(id, actorId);
   }
 
   // only 'boss' role can fire a wizkid
@@ -77,8 +78,9 @@ export class WizkidsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(WizkidRole.BOSS)
   @Patch(':id/unfire')
-  async unfire(@Param('id', ParseObjectIdPipe) id: string) {
-    const updatedWizkid = await this.wizkidsService.unfireWizkid(id);
+  async unfire(@Param('id', ParseObjectIdPipe) id: string, @Req() req: any) {
+    const actorId = req.user.userId;
+    const updatedWizkid = await this.wizkidsService.unfireWizkid(id, actorId);
     return toPrivateView(updatedWizkid);
   }
 }

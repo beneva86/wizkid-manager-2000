@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -15,6 +16,8 @@ import { EmailTemplate } from 'src/email/email.types';
 
 @Injectable()
 export class WizkidsService {
+  private readonly logger = new Logger(WizkidsService.name);
+
   constructor(
     @InjectModel(Wizkid.name)
     private readonly wizkidModel: Model<WizkidDocument>,
@@ -51,6 +54,7 @@ export class WizkidsService {
     }
 
     try {
+      this.logger.log(`Creating wizkid with email: ${email}`);
       return await this.wizkidModel.create({
         name: dto.name,
         role: dto.role,
@@ -63,6 +67,9 @@ export class WizkidsService {
     } catch (err: any) {
       // check Mongo duplicate key error
       if (err?.code === 11000) {
+        this.logger.log(
+          `WizkidService wizkid cannot be created due to duplicated email: ${dto.email}`,
+        );
         throw new ConflictException('Email already exists');
       }
       throw new BadRequestException('Unable to create wizkid');
@@ -90,6 +97,9 @@ export class WizkidsService {
     const wizkid = await this.wizkidModel.findById(id);
 
     if (!wizkid) {
+      this.logger.warn(
+        `WizkidService Attempt to update non-existing wizkid with id: ${id}`,
+      );
       throw new NotFoundException('Wizkid not found');
     }
 
@@ -121,17 +131,31 @@ export class WizkidsService {
 
     try {
       const saved = await wizkid.save();
+      this.logger.log(`Wizkid with id ${id} updated successfully`);
       return saved.toObject();
     } catch (err: any) {
       if (err?.code === 11000) {
+        this.logger.warn(
+          `WizkidService Attempt to update wizkid with id ${id} failed due to duplicated email: ${dto.email}`,
+        );
         throw new ConflictException('Email already exists');
       }
+      this.logger.warn(
+        `WizkidService Attempt to update wizkid with id ${id} failed due to error: ${err.message}`,
+      );
       throw new BadRequestException('Unable to update wizkid');
     }
   }
 
-  async deleteWizkid(id: string) {
-    const deleted = await this.wizkidModel.findByIdAndDelete(id).lean().exec();
+  async deleteWizkid(targetId: string, actorId: string) {
+    const deleted = await this.wizkidModel
+      .findByIdAndDelete(targetId)
+      .lean()
+      .exec();
+
+    this.logger.warn(
+      `WizkidService Wizkid with id ${targetId} deleted by actor id ${actorId}`,
+    );
 
     if (!deleted) {
       throw new NotFoundException('Wizkid not found');
@@ -142,11 +166,17 @@ export class WizkidsService {
 
   async fireWizkid(targetId: string, actorId: string) {
     if (targetId === actorId) {
+      this.logger.warn(
+        `WizkidService Attempt to fire self by actor id: ${actorId}`,
+      );
       throw new ForbiddenException('You cannot fire yourself');
     }
 
     const wizkid = await this.wizkidModel.findById(targetId);
     if (!wizkid) {
+      this.logger.warn(
+        `WizkidService Attempt to fire non-existing wizkid with id: ${targetId} by actor id: ${actorId}`,
+      );
       throw new NotFoundException('Wizkid not found');
     }
 
@@ -158,6 +188,10 @@ export class WizkidsService {
     wizkid.firedAt = new Date();
     const savedWizkid = await wizkid.save();
 
+    this.logger.warn(
+      `WizkidService Wizkid ${wizkid.email} fired by actor id: ${actorId}`,
+    );
+
     if (wizkid.email) {
       await this.emailService.sendTemplate(wizkid.email, EmailTemplate.FIRED, {
         name: wizkid.name,
@@ -166,9 +200,19 @@ export class WizkidsService {
     return savedWizkid.toObject();
   }
 
-  async unfireWizkid(targetId: string) {
+  async unfireWizkid(targetId: string, actorId: string) {
+    if (targetId === actorId) {
+      this.logger.warn(
+        `WizkidService Attempt to unfire self by actor id: ${actorId}`,
+      );
+      throw new ForbiddenException('You cannot fire yourself');
+    }
+
     const wizkid = await this.wizkidModel.findById(targetId);
     if (!wizkid) {
+      this.logger.warn(
+        `WizkidService Attempt to unfire non-existing wizkid with id: ${targetId} by actor id: ${actorId}`,
+      );
       throw new NotFoundException('Wizkid not found');
     }
 
@@ -179,6 +223,10 @@ export class WizkidsService {
 
     wizkid.firedAt = null;
     const savedWizkid = await wizkid.save();
+
+    this.logger.log(
+      `WizkidService Wizkid ${wizkid.email} unfired by actor id: ${actorId}`,
+    );
 
     if (wizkid.email) {
       await this.emailService.sendTemplate(
@@ -193,6 +241,10 @@ export class WizkidsService {
   async deleteFiredWizkidsOlderThanDays(days: number): Promise<number> {
     const threshold = new Date();
     threshold.setDate(threshold.getDate() - days);
+
+    this.logger.log(
+      `WizkidService Deleting fired wizkids with firedAt <= ${threshold.toISOString()}`,
+    );
 
     const result = await this.wizkidModel.deleteMany({
       firedAt: { $lte: threshold },
