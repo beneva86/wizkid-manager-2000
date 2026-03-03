@@ -13,20 +13,30 @@ export type WizkidPrivateView = WizkidPublicView & {
   phone?: string;
 };
 
-export function toPublicView(doc: any): WizkidPublicView {
+export function toPublicView(wizkid: any) {
+  // we hide the email and phone fields in the public view
   return {
-    id: String(doc._id),
-    name: doc.name,
-    role: doc.role,
-    profilePicture: doc.profilePicture ?? null,
-    firedAt: doc.firedAt ?? null,
+    id: wizkid._id?.toString?.() ?? wizkid.id,
+    name: wizkid.name,
+    role: wizkid.role,
+    profilePicture: wizkid.profilePicture ?? null,
+    firedAt: wizkid.firedAt ?? null,
+    createdAt: wizkid.createdAt,
+    updatedAt: wizkid.updatedAt,
   };
 }
 
-export function toPrivateView(doc: any): WizkidPrivateView {
+export function toPrivateView(wizkid: any) {
+  // we include the email and phone fields in the private view
   return {
-    ...toPublicView(doc),
-    email: doc.email,
-    phone: doc.phone,
+    id: wizkid._id?.toString?.() ?? wizkid.id,
+    name: wizkid.name,
+    role: wizkid.role,
+    email: wizkid.email,
+    phone: wizkid.phone ?? null,
+    profilePicture: wizkid.profilePicture ?? null,
+    firedAt: wizkid.firedAt ?? null,
+    createdAt: wizkid.createdAt,
+    updatedAt: wizkid.updatedAt,
   };
 }
