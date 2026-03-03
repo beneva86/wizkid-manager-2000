@@ -70,4 +70,11 @@ export class WizkidsService {
     if (!found) throw new NotFoundException('Wizkid not found');
     return found;
   }
+
+  async findByEmail(email: string) {
+    return this.wizkidModel
+      .findOne({ email: email.toLowerCase().trim() })
+      .lean()
+      .exec();
+  }
 }

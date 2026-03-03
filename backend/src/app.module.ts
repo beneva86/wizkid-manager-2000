@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { HealthController } from './health.controller';
 import { WizkidsModule } from './wizkids/wizkids.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { WizkidsModule } from './wizkids/wizkids.module';
       }),
     }),
     WizkidsModule,
+    AuthModule,
   ],
   controllers: [HealthController],
 })
