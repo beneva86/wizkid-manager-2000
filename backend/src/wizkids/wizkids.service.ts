@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -134,5 +135,41 @@ export class WizkidsService {
     }
 
     return deleted;
+  }
+
+  async fireWizkid(targetId: string, actorId: string) {
+    if (targetId === actorId) {
+      throw new ForbiddenException('You cannot fire yourself');
+    }
+
+    const wizkid = await this.wizkidModel.findById(targetId);
+    if (!wizkid) {
+      throw new NotFoundException('Wizkid not found');
+    }
+
+    // if already fired, do nothing and return the wizkid
+    if (wizkid.firedAt) {
+      return wizkid.toObject();
+    }
+
+    wizkid.firedAt = new Date();
+    const saved = await wizkid.save();
+    return saved.toObject();
+  }
+
+  async unfireWizkid(targetId: string) {
+    const wizkid = await this.wizkidModel.findById(targetId);
+    if (!wizkid) {
+      throw new NotFoundException('Wizkid not found');
+    }
+
+    // if the wizkid is not fired, do nothing and return the wizkid
+    if (!wizkid.firedAt) {
+      return wizkid.toObject();
+    }
+
+    wizkid.firedAt = null;
+    const saved = await wizkid.save();
+    return saved.toObject();
   }
 }

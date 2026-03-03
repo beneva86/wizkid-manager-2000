@@ -18,6 +18,9 @@ import { OptionalJwtAuthGuard } from 'src/auth/guards/optional-jwt-auth.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { UpdateWizkidDto } from './dto/update-wizkid.dto';
 import { ParseObjectIdPipe } from 'src/common/pipes/parse-objectid.pipe';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { WizkidRole } from './wizkid-role.enum';
 
 @Controller('wizkids')
 export class WizkidsController {
@@ -52,9 +55,30 @@ export class WizkidsController {
     return toPrivateView(updatedWizkid);
   }
 
-  @UseGuards(JwtAuthGuard)
+  // only 'boss' role can delete a wizkid
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(WizkidRole.BOSS)
   @Delete(':id')
   async remove(@Param('id', ParseObjectIdPipe) id: string) {
     await this.wizkidsService.deleteWizkid(id);
+  }
+
+  // only 'boss' role can fire a wizkid
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(WizkidRole.BOSS)
+  @Patch(':id/fire')
+  async fire(@Param('id', ParseObjectIdPipe) id: string, @Req() req: any) {
+    const actorId = req.user.userId;
+    const updatedWizkid = await this.wizkidsService.fireWizkid(id, actorId);
+    return toPrivateView(updatedWizkid);
+  }
+
+  // only 'boss' role can unfire a wizkid
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(WizkidRole.BOSS)
+  @Patch(':id/unfire')
+  async unfire(@Param('id', ParseObjectIdPipe) id: string) {
+    const updatedWizkid = await this.wizkidsService.unfireWizkid(id);
+    return toPrivateView(updatedWizkid);
   }
 }
