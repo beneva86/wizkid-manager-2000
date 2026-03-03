@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -12,6 +14,9 @@ import { ListWizkidsQuery } from './dto/list-wizkids.query';
 import { toPrivateView, toPublicView } from './mappers/wizkid.mapper';
 import { WizkidsService } from './wizkids.service';
 import { OptionalJwtAuthGuard } from 'src/auth/guards/optional-jwt-auth.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { UpdateWizkidDto } from './dto/update-wizkid.dto';
+import { ParseObjectIdPipe } from 'src/common/pipes/parse-objectid.pipe';
 
 @Controller('wizkids')
 export class WizkidsController {
@@ -30,7 +35,19 @@ export class WizkidsController {
 
   @Post()
   async create(@Body() dto: CreateWizkidDto) {
-    const created = await this.wizkidsService.createWizkid(dto);
-    return toPublicView(created);
+    const createdWizkid = await this.wizkidsService.createWizkid(dto);
+    return toPublicView(createdWizkid);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id')
+  async update(
+    @Param('id', ParseObjectIdPipe) id: string,
+    @Body() dto: UpdateWizkidDto,
+  ) {
+    const updatedWizkid = await this.wizkidsService.updateWizkid(id, dto);
+    // we return the private view here because only authenticated users can update,
+    // and they should see all the details of the updated wizkid
+    return toPrivateView(updatedWizkid);
   }
 }

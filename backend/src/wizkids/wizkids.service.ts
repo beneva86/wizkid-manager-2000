@@ -67,7 +67,11 @@ export class WizkidsService {
 
   async findById(id: string) {
     const found = await this.wizkidModel.findById(id).lean().exec();
-    if (!found) throw new NotFoundException('Wizkid not found');
+
+    if (!found) {
+      throw new NotFoundException('Wizkid not found');
+    }
+
     return found;
   }
 
@@ -76,5 +80,49 @@ export class WizkidsService {
       .findOne({ email: email.toLowerCase().trim() })
       .lean()
       .exec();
+  }
+
+  async updateWizkid(id: string, dto: any) {
+    const wizkid = await this.wizkidModel.findById(id);
+
+    if (!wizkid) {
+      throw new NotFoundException('Wizkid not found');
+    }
+
+    // normalize email
+    if (dto.email) {
+      wizkid.email = dto.email.toLowerCase().trim();
+    }
+
+    if (dto.name !== undefined) {
+      wizkid.name = dto.name;
+    }
+
+    if (dto.role !== undefined) {
+      wizkid.role = dto.role;
+    }
+
+    if (dto.profilePicture !== undefined) {
+      wizkid.profilePicture = dto.profilePicture;
+    }
+
+    if (dto.phone !== undefined) {
+      wizkid.phone = dto.phone;
+    }
+
+    // password update if it is provided
+    if (dto.password) {
+      wizkid.passwordHash = await bcrypt.hash(dto.password, 10);
+    }
+
+    try {
+      const saved = await wizkid.save();
+      return saved.toObject();
+    } catch (err: any) {
+      if (err?.code === 11000) {
+        throw new ConflictException('Email already exists');
+      }
+      throw new BadRequestException('Unable to update wizkid');
+    }
   }
 }
