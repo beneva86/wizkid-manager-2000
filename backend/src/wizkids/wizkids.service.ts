@@ -10,12 +10,15 @@ import { Model } from 'mongoose';
 import { Wizkid, WizkidDocument } from './schemas/wizkid.schema';
 import { WizkidRole } from './wizkid-role.enum';
 import * as bcrypt from 'bcrypt';
+import { EmailService } from 'src/email/email.service';
+import { EmailTemplate } from 'src/email/email.types';
 
 @Injectable()
 export class WizkidsService {
   constructor(
     @InjectModel(Wizkid.name)
     private readonly wizkidModel: Model<WizkidDocument>,
+    private readonly emailService: EmailService,
   ) {}
 
   async findAll(params?: { search?: string; role?: WizkidRole }) {
@@ -153,8 +156,14 @@ export class WizkidsService {
     }
 
     wizkid.firedAt = new Date();
-    const saved = await wizkid.save();
-    return saved.toObject();
+    const savedWizkid = await wizkid.save();
+
+    if (wizkid.email) {
+      await this.emailService.sendTemplate(wizkid.email, EmailTemplate.FIRED, {
+        name: wizkid.name,
+      });
+    }
+    return savedWizkid.toObject();
   }
 
   async unfireWizkid(targetId: string) {
@@ -169,8 +178,16 @@ export class WizkidsService {
     }
 
     wizkid.firedAt = null;
-    const saved = await wizkid.save();
-    return saved.toObject();
+    const savedWizkid = await wizkid.save();
+
+    if (wizkid.email) {
+      await this.emailService.sendTemplate(
+        wizkid.email,
+        EmailTemplate.UNFIRED,
+        { name: wizkid.name },
+      );
+    }
+    return savedWizkid.toObject();
   }
 
   async deleteFiredWizkidsOlderThanDays(days: number): Promise<number> {

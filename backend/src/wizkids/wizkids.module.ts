@@ -4,10 +4,12 @@ import { WizkidsController } from './wizkids.controller';
 import { WizkidsService } from './wizkids.service';
 import { Wizkid, WizkidSchema } from './schemas/wizkid.schema';
 import { WizkidsCleanupService } from './wizkids.cleanup.service';
+import { EmailModule } from 'src/email/email.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Wizkid.name, schema: WizkidSchema }]),
+    EmailModule,
   ],
   controllers: [WizkidsController],
   providers: [WizkidsService, WizkidsCleanupService],
