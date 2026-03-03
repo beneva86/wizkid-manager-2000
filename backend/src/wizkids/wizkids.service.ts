@@ -172,4 +172,15 @@ export class WizkidsService {
     const saved = await wizkid.save();
     return saved.toObject();
   }
+
+  async deleteFiredWizkidsOlderThanDays(days: number): Promise<number> {
+    const threshold = new Date();
+    threshold.setDate(threshold.getDate() - days);
+
+    const result = await this.wizkidModel.deleteMany({
+      firedAt: { $lte: threshold },
+    });
+
+    return result.deletedCount ?? 0;
+  }
 }
