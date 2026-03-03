@@ -37,12 +37,14 @@ export class WizkidsController {
     return wizkids.map(mapper);
   }
 
+  // I leave this create endpoint open for now, but in production this should be protected and only accessible with a valid token
   @Post()
   async create(@Body() dto: CreateWizkidDto) {
     const createdWizkid = await this.wizkidsService.createWizkid(dto);
     return toPublicView(createdWizkid);
   }
 
+  // I leave this create endpoint open for any roles, but in production this should be protected and only accessible with 'boss' role
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
   async update(
